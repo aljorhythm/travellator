@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+        <script src="js/libs/jquery/jquery.min.js"></script>
+        <style>
+            #travellator{
+                right:0;
+                top:0;
+                left:0;
+                min-height:1000%;
+                background: rgba(0,0,0,0.2);
+                position: absolute;
+            }
+            .center_block{
+                display:block;
+                margin-left:auto;
+                margin-right:auto; 
+            }
+            .center_absolute{
+                margin-left:auto;
+                margin-right:auto;
+                left:0;
+                right:0;
+                position:absolute;
+            }
+            #bump_1.initial_position{ 
+                top:200px;
+            }
+            #cabin_1.initial_position{  
+                top:300px;
+            }
+            #bump_2.initial_position{ 
+                top:800px;
+            }
+            #cabin_2.initial_position{        
+                top:900px;
+            }
+            #bump_3.initial_position{ 
+                top:1400px;
+            }
+            #cabin_3.initial_position{  
+                top:1500px;
+            } 
+            #bump_4.initial_position{  
+                top:2000px;
+            }
+            #cabin_4.initial_position{  
+                top:2100px;
+            }
+            #bump_5.initial_position{ 
+                top:2600px;
+            }
+            #cabin_5.initial_position{        
+                top:2700px;
+            }
+            #bump_6.initial_position{ 
+                top:3200px;
+            }
+            .bump{    
+                height:100px; 
+                width:200px;  
+                background:orange; 
+                text-align: center;  
+            }
+            .cabin{
+                height:100px;
+                width:200px; 
+                background:yellow;  
+                text-align: center;  
+            } 
+        </style>
+        <script>
+            //true if up
+            //false if down 
+            window.scrolledUp = function() {
+                var ret;
+                var st = $(window).scrollTop();
+                if (st > window.lastScrollTop) {
+                    ret = false;
+                } else {
+                    ret = true;
+                }
+                window.lastScrollTop = st;
+                return ret;
+            };
+            var travellator_selectors = [];
+            function initTravellatorObjects() {
+
+                for (i = 1; i <= 6; i++) {
+                    var bump = $('#bump_' + i);
+                    travellator_selectors.push(bump);
+                    var cabin = $('#cabin_' + i);
+                    travellator_selectors.push(cabin);
+                }
+                for (i = 0; i < (travellator_selectors.length - 1) / 2; i++) {
+                    var cabinIndex = (i * 2) + 1;
+                    travellator_selectors[cabinIndex].nextCabin = travellator_selectors[cabinIndex + 2];
+                    travellator_selectors[cabinIndex].previousCabin = travellator_selectors[cabinIndex - 2];
+                    travellator_selectors[cabinIndex].bumpTop = travellator_selectors[cabinIndex - 1];
+                    travellator_selectors[cabinIndex].bumpBottom = travellator_selectors[(cabinIndex + 1)];
+                }
+                travellator_selectors.pop();
+                travellator_selectors[1].previousCabin = null;
+                travellator_selectors[travellator_selectors.length - 2].nextCabin = null;
+                console.log(travellator_selectors[travellator_selectors.length - 2]);
+            }
+
+            window.lastScrollTop = 0;
+            var window_travellator;
+            var Travellator = function(initial) {
+                this.moving = initial;
+                this.lock = this.moving[0].getBoundingClientRect();
+                this.moving.removeClass(Travellator.CSS_CLASS_INITIAL);
+                this.moving.css({top: this.lock.top, position: 'fixed'});
+                this.move_on_hold = false;
+                this.lastCabin = false;
+            };
+            Travellator.CSS_CLASS_INITIAL = "initial_position";
+            Travellator.prototype.changeMoving = function(cabin, directionUp) {
+                console.log("CHANGEEEEE");
+                if (directionUp) {
+                    this.moving.css({top: this.moving.bumpTop.position().top + parseInt(this.moving.bumpTop.css('height')), position: 'absolute'});
+
+                } else {
+                    this.moving.css({top: (this.moving.bumpBottom.position().top - parseInt(this.moving.css('height'))), position: 'absolute'});
+                }
+                this.moving = cabin;
+                this.checkHold(directionUp);
+            };
+            Travellator.prototype.checkHold = function(directionUp) {
+                var condition;
+                if (directionUp) {
+                    console.log("1");
+                    console.log(this.lock.top);
+                    console.log("2");
+                    console.log(this.moving[0].getBoundingClientRect().top);
+
+                    condition = this.lock.top <= this.moving[0].getBoundingClientRect().top;
+                    console.log('condition1 up' + condition);
+                } else {
+                    condition = this.lock.bottom > this.moving[0].getBoundingClientRect().bottom;
+                    console.log('condition2 down ' + condition);
+                }
+                if (condition) {
+                    console.log(true);
+                    this.moving.removeClass(Travellator.CSS_CLASS_INITIAL);
+                    this.moving.css({top: this.lock.top, position: 'fixed'});
+                    this.move_on_hold = false;
+                } else {
+                    this.move_on_hold = true;
+                }
+            };
+            Travellator.prototype.lastCabinScrollUpTrigger = function() {
+                if (this.lastCabin) {
+                    this.move_on_hold = true;
+                    this.lastCabin = false;
+                }
+            };
+            Travellator.prototype.travel = function() {
+                if (window.scrolledUp()) {
+                    this.lastCabinScrollUpTrigger();
+                    if (this.move_on_hold) {
+                        this.checkHold(true);
+                    }
+                    //  console.log('check up: ' + this.moving.bumpTop[0].getBoundingClientRect().bottom + ' ' + this.moving[0].getBoundingClientRect().top);
+                    if (this.moving.bumpTop[0].getBoundingClientRect().bottom >= this.moving[0].getBoundingClientRect().top) {
+                        console.log('SCROLLL UPP true');
+                        if (this.moving.previousCabin !== null) {
+                            this.changeMoving(this.moving.previousCabin, true);
+                        } else {
+
+                        }
+                    }
+
+                } else {
+                    var bumpBottom = this.moving.bumpBottom;
+                    //   console.log('check down: ' + bumpBottom.selector + ' ' + bumpBottom[0].getBoundingClientRect().top + ' ' + this.moving[0].getBoundingClientRect().bottom);
+                    if (this.move_on_hold) {
+                        this.checkHold(false);
+                    }
+                    console.log('top');
+                    console.log(bumpBottom[0].getBoundingClientRect().top);
+                    console.log(this.moving[0].getBoundingClientRect().bottom);
+                    console.log('bot');
+                    if (bumpBottom[0].getBoundingClientRect().top < this.moving[0].getBoundingClientRect().bottom) {
+                        if (this.moving.nextCabin !== null) {
+                            this.changeMoving(this.moving.nextCabin, false);
+                        } else {
+                            //  this.changeMoving(this.moving, false);
+                            console.log('time to change');
+                            this.move_on_hold = false;
+                            this.moving.css({top: (this.moving.bumpBottom.position().top - parseInt(this.moving.css('height'))), position: 'absolute'});
+                            this.lastCabin = true;
+                        }
+                    }
+                }
+            };
+            $(document).ready(function() {
+                initTravellatorObjects();
+                console.log('ready');
+                console.log(travellator_selectors[1]);
+                console.log(travellator_selectors[1].bumpBottom);
+                window_travellator = new Travellator(travellator_selectors[1]);
+                $(window).scroll(function() {
+                    window_travellator.travel();
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <div id="travellator">
+            <br> 
+            <div id="bump_1" class="center_absolute bump initial_position">bump_1</div>
+            <div id="cabin_1" class="center_absolute cabin initial_position">cabin_1</div>
+
+            <div id="bump_2" class="center_absolute bump initial_position">bump_2</div>
+            <div id="cabin_2" class="center_absolute cabin initial_position">cabin_2</div>
+
+            <div id="bump_3" class="center_absolute bump initial_position">bump_3</div>
+            <div id="cabin_3" class="center_absolute cabin initial_position">cabin_3</div>
+
+            <div id="bump_4" class="center_absolute bump initial_position">bump_4</div>
+            <div id="cabin_4" class="center_absolute cabin initial_position">cabin_4</div>
+
+            <div id="bump_5" class="center_absolute bump initial_position">bump_5</div>
+            <div id="cabin_5" class="center_absolute cabin initial_position">cabin_5</div>
+
+            <div id="bump_6" class="center_absolute bump initial_position">bump_6</div>
+        </div>
+    </body>
+</html>
